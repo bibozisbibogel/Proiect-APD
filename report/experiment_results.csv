@@ -1,0 +1,55 @@
+run_id,query,execution_mode,num_apis,num_restaurants,time_api_geoapify,time_deduplication,time_scoring,time_ranking,time_pipeline_total,time_total,time_api_overpass_osm,time_api_foursquare
+1,Constanta/seafood,sequential,1,1,0.482113,3e-06,3.2e-05,4e-06,0.482178,0.482178,,
+2,Constanta/seafood,sequential,1,1,0.514266,2e-06,2e-05,3e-06,0.514306,0.514306,,
+3,Constanta/seafood,sequential,1,1,0.418964,1e-06,1.8e-05,3e-06,0.418999,0.418999,,
+1,Bucharest/italian+pizza,sequential,1,10,1.076389,3.2e-05,0.000185,7e-06,1.076631,1.076631,,
+2,Bucharest/italian+pizza,sequential,1,10,0.438218,2.2e-05,0.000112,6e-06,0.438371,0.438371,,
+3,Bucharest/italian+pizza,sequential,1,10,0.94851,3.1e-05,0.000113,6e-06,0.948673,0.948673,,
+1,Cluj-Napoca/romanian+traditional,sequential,1,10,1.243074,2.4e-05,0.000103,6e-06,1.24322,1.24322,,
+2,Cluj-Napoca/romanian+traditional,sequential,1,10,0.840836,2.4e-05,0.000101,6e-06,0.840979,0.84098,,
+3,Cluj-Napoca/romanian+traditional,sequential,1,10,1.065665,2.4e-05,0.000101,6e-06,1.065807,1.065807,,
+1,Timisoara/fast food,sequential,1,10,0.722549,2.7e-05,0.000107,6e-06,0.722702,0.722703,,
+2,Timisoara/fast food,sequential,1,10,0.725028,3.7e-05,0.000148,8e-06,0.725237,0.725238,,
+3,Timisoara/fast food,sequential,1,10,0.66841,3.5e-05,0.000169,8e-06,0.668639,0.66864,,
+1,Iasi/french,sequential,1,1,0.730988,1e-06,1.9e-05,3e-06,0.731024,0.731025,,
+2,Iasi/french,sequential,1,1,0.575876,1e-06,1.9e-05,3e-06,0.575912,0.575912,,
+3,Iasi/french,sequential,1,1,0.499979,1e-06,1.7e-05,3e-06,0.500011,0.500011,,
+1,Brasov/steakhouse,sequential,1,2,0.439835,3e-06,2.4e-05,4e-06,0.439876,0.439877,,
+2,Brasov/steakhouse,sequential,1,2,0.487528,2e-06,2.4e-05,4e-06,0.487571,0.487571,,
+3,Brasov/steakhouse,sequential,1,2,0.5525,3e-06,3.4e-05,4e-06,0.552555,0.552556,,
+1,Constanta/seafood,sequential,2,2,0.459011,2e-06,3e-05,4e-06,6.102891,6.102892,5.643819,
+2,Constanta/seafood,sequential,2,1,0.731387,2e-06,3.1e-05,3e-06,10.235032,10.235033,9.503573,
+3,Constanta/seafood,sequential,2,1,0.941413,1e-06,2.1e-05,3e-06,9.89646,9.896461,8.954993,
+1,Bucharest/italian+pizza,sequential,2,10,1.120041,2.6e-05,0.000214,7e-06,14.198622,14.198622,13.078305,
+2,Bucharest/italian+pizza,sequential,2,10,0.535406,7.1e-05,0.000176,7e-06,1.421193,1.421193,0.885511,
+3,Bucharest/italian+pizza,sequential,2,10,0.80648,2.5e-05,0.000126,6e-06,11.192789,11.19279,10.386129,
+1,Cluj-Napoca/romanian+traditional,sequential,2,10,0.968007,3.6e-05,0.000121,6e-06,10.052067,10.052068,9.083857,
+2,Cluj-Napoca/romanian+traditional,sequential,2,10,1.034471,2.9e-05,0.000121,6e-06,10.862026,10.862026,9.827374,
+3,Cluj-Napoca/romanian+traditional,sequential,2,10,1.10292,6e-05,0.000187,8e-06,11.639578,11.639579,10.536365,
+1,Timisoara/fast food,sequential,2,10,0.531385,3e-05,0.000119,6e-06,1.727186,1.727186,1.195626,
+2,Timisoara/fast food,sequential,2,10,0.741798,3.2e-05,0.000126,6e-06,11.704192,11.704193,10.962207,
+3,Timisoara/fast food,sequential,2,10,0.809123,3.1e-05,0.000421,7e-06,11.947071,11.947072,11.137458,
+1,Iasi/french,sequential,2,1,0.480149,3e-06,1.6e-05,3e-06,6.325979,6.32598,5.845788,
+2,Iasi/french,sequential,2,1,0.517241,3e-06,2e-05,3e-06,3.998405,3.998406,3.481115,
+3,Iasi/french,sequential,2,1,0.443103,1e-06,2.2e-05,3e-06,10.965353,10.965353,10.522171,
+1,Brasov/steakhouse,sequential,2,2,0.430153,4e-06,3.1e-05,4e-06,11.688388,11.688389,11.258173,
+2,Brasov/steakhouse,sequential,2,2,0.591571,4e-06,3.2e-05,4e-06,9.470203,9.470203,8.878564,
+3,Brasov/steakhouse,sequential,2,2,0.489523,4e-06,3.2e-05,4e-06,9.562481,9.562481,9.072894,
+1,Constanta/seafood,sequential,3,10,0.534094,2.5e-05,0.000105,5e-06,9.911663,9.911664,8.765407,0.612001
+2,Constanta/seafood,sequential,3,10,0.573464,2.4e-05,0.000188,6e-06,4.119539,4.119539,2.967773,0.578059
+3,Constanta/seafood,sequential,3,10,0.826718,2.4e-05,0.000104,6e-06,11.62174,11.62174,10.270174,0.52468
+1,Bucharest/italian+pizza,sequential,3,10,1.098819,0.000167,0.000262,1e-05,8.66275,8.66275,6.843588,0.719878
+2,Bucharest/italian+pizza,sequential,3,10,0.887236,0.000167,0.000292,1.4e-05,16.738109,16.73811,15.27082,0.579551
+3,Bucharest/italian+pizza,sequential,3,10,1.259811,0.000163,0.000261,9e-06,4.714817,4.714817,3.17241,0.282135
+1,Cluj-Napoca/romanian+traditional,sequential,3,10,1.06255,4.7e-05,0.000144,6e-06,12.170617,12.170618,10.514093,0.59374
+2,Cluj-Napoca/romanian+traditional,sequential,3,10,1.288264,4.6e-05,0.000153,7e-06,12.514636,12.514636,10.583485,0.642647
+3,Cluj-Napoca/romanian+traditional,sequential,3,10,0.463335,4.4e-05,0.000136,6e-06,10.742994,10.742995,9.966594,0.312847
+1,Timisoara/fast food,sequential,3,10,0.692658,7.6e-05,0.000161,7e-06,11.815583,11.815583,10.530388,0.592263
+2,Timisoara/fast food,sequential,3,10,0.676807,0.0001,0.000242,9e-06,1.778508,1.778508,0.469553,0.631765
+3,Timisoara/fast food,sequential,3,10,0.650029,7.6e-05,0.000164,7e-06,2.551977,2.551977,1.36434,0.537332
+1,Iasi/french,sequential,3,10,0.559149,1.1e-05,4.5e-05,4e-06,10.155522,10.155522,9.009695,0.586359
+2,Iasi/french,sequential,3,10,0.515078,2.7e-05,9e-05,6e-06,9.805011,9.805011,8.798111,0.491662
+3,Iasi/french,sequential,3,10,0.783109,2.5e-05,0.000108,7e-06,10.891744,10.891744,9.498864,0.609594
+1,Brasov/steakhouse,sequential,3,10,0.65847,3.8e-05,0.000114,6e-06,14.607625,14.607626,13.298481,0.650484
+2,Brasov/steakhouse,sequential,3,10,0.912312,3.6e-05,0.000178,6e-06,2.363181,2.363182,1.12933,0.321289
+3,Brasov/steakhouse,sequential,3,10,0.628465,3.6e-05,0.000119,7e-06,1.963613,1.963613,0.59316,0.741771

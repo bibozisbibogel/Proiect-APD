@@ -1,0 +1,448 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[romanian]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{pgfplotstable}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{csvsimple}
+\usepackage{float}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    commentstyle=\color{gray},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+}
+
+\title{
+    \textbf{Travel Companion -- AI Restaurant Finder}\\[0.5em]
+    \large Varianta Secvențială (S6)\\[0.3em]
+    \large Algoritmi Paraleli și Distribuiți
+}
+\author{
+    Stoian Cristian Georgian\\
+    Calculatoare Română, Grupa CR3.2A
+}
+\date{Martie 2026}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Cerințe și Tema Proiectului}
+
+\subsection{Descrierea Proiectului}
+
+\textbf{Travel Companion} este o aplicație bazată pe inteligență artificială care recomandă cele mai bune restaurante pe baza preferințelor utilizatorului (locație, tip de mâncare, mediu, distanță etc.).
+
+Sistemul agregă date de la multiple surse API externe și aplică algoritmi de scoring cu ponderi configurabile pentru a determina cele mai potrivite restaurante.
+
+\subsection{Obiectivul Principal}
+
+Obiectivul principal al proiectului este \textbf{analiza și compararea abordărilor secvențiale și paralele} pentru agregarea și procesarea datelor din surse multiple. Această livrare (S6) prezintă implementarea și analiza variantei secvențiale.
+
+\subsection{Modele de Execuție}
+
+\begin{enumerate}
+    \item \textbf{Secvențial} (S6 -- această livrare): Toate operațiile se execută una după alta
+    \item \textbf{Paralel \#1 -- Async I/O}: Apeluri API concurente folosind \texttt{asyncio}
+    \item \textbf{Paralel \#2 -- Multiprocessing}: Procesare CPU paralelă pentru scoring
+    \item \textbf{Paralel \#3 -- Hibrid}: Async I/O + Multiprocessing combinat
+\end{enumerate}
+
+\subsection{Tehnologii Utilizate}
+
+\begin{itemize}
+    \item \textbf{Limbaj}: Python 3.12.3
+    \item \textbf{Pattern arhitectural}: Strategy Pattern (interfață comună pentru toate modurile de execuție)
+    \item \textbf{Surse de date}: Clienți API reali (Geoapify, Overpass/OSM, Foursquare)
+    \item \textbf{Instrumentare}: \texttt{TimingCollector} cu decorator \texttt{@timed\_task} pentru măsurarea timpilor
+    \item \textbf{Dependențe}: \texttt{requests}, \texttt{python-dotenv}
+\end{itemize}
+
+\subsection{Surse de Date API}
+\label{sec:api}
+
+Sistemul utilizează trei surse de date reale pentru restaurante:
+
+\begin{enumerate}
+    \item \textbf{Geoapify Places API} -- oferă date despre restaurante incluzând rating (bazat pe popularitate), locație, categorii, nivel de preț și adresă formatată. Suportă filtrarea pe categorii specifice (e.g. \texttt{catering.restaurant.seafood}) și filtre geografice circulare.
+
+    \item \textbf{Overpass API (OpenStreetMap)} -- furnizează date deschise din baza de date OpenStreetMap. Permite interogări complexe prin limbajul Overpass QL pentru restaurante cu filtrare pe tipul de bucătărie (\texttt{cuisine}). Extrage tag-uri de mediu (terasă, loc de joacă, seating exterior) și adrese din componentele OSM. Nu necesită cheie API.
+
+    \item \textbf{Foursquare Places API} -- adaugă o a treia perspectivă cu căutare text-based și categorii detaliate. Autentificarea se face prin Bearer token.
+\end{enumerate}
+
+Toți clienții implementează aceeași interfață abstractă \texttt{BaseAPIClient}, permițând adăugarea sau înlocuirea transparentă a oricărei surse de date.
+
+\subsection{Geocodare}
+
+Înainte de interogarea surselor de restaurante, sistemul trebuie să determine coordonatele GPS ale orașului specificat de utilizator. Rezolvarea coordonatelor se face ierarhic:
+
+\begin{enumerate}
+    \item \textbf{Coordonate explicite} -- dacă utilizatorul furnizează \texttt{latitude}/\texttt{longitude} în query
+    \item \textbf{Cache local} -- un dicționar predefinit cu coordonatele celor mai comune orașe românești (București, Constanța, Cluj-Napoca, Timișoara, Iași, Brașov)
+    \item \textbf{Geoapify Geocoding API} -- pentru orice alt oraș, se apelează \texttt{/v1/geocode/search} cu parametrul \texttt{type=city}, permițând căutarea oricărui oraș din lume
+    \item \textbf{Fallback} -- în cazul în care geocodarea eșuează, se folosesc coordonatele Bucureștiului ca valoare implicită
+\end{enumerate}
+
+Această abordare asigură funcționarea aplicației pentru orice locație, nu doar pentru orașele predefinite.
+
+\subsection{Pipeline de Execuție}
+
+Fluxul secvențial al pipeline-ului:
+
+$$T_{total} = T_{geocode} + T_{API_1} + T_{API_2} + \ldots + T_{API_N} + T_{dedup} + T_{scoring} + T_{ranking}$$
+
+Unde $T_{geocode}$ este timpul de rezolvare a coordonatelor (0 pentru orașele din cache, $\sim$0.3--0.5s pentru geocodare API), fiecare $T_{API_i}$ include latența de rețea și timpul de procesare a răspunsului, iar $T_{dedup}$, $T_{scoring}$, $T_{ranking}$ sunt timpii de procesare locală.
+
+% ============================================================
+\section{Arhitectura Sistemului}
+
+\subsection{Strategy Pattern}
+
+Arhitectura se bazează pe \textbf{Strategy Pattern}, unde interfața abstractă \texttt{ExecutionStrategy} definește metoda \texttt{execute()} implementată de fiecare mod de execuție:
+
+\begin{lstlisting}[caption={Interfața ExecutionStrategy}]
+class ExecutionStrategy(ABC):
+    def __init__(self, collector: TimingCollector):
+        self.collector = collector
+
+    @abstractmethod
+    def execute(self, query, clients, scorer):
+        pass
+
+    @property
+    @abstractmethod
+    def mode_name(self) -> str:
+        pass
+\end{lstlisting}
+
+Pentru S6, este implementată doar \texttt{SequentialStrategy}. Variantele paralele se vor adăuga fără modificarea codului existent, datorită polimorfismului oferit de interfața comună.
+
+\subsection{Structura Proiectului}
+
+\begin{itemize}
+    \item \texttt{models.py} -- Clase de date: \texttt{Query}, \texttt{Restaurant}, \texttt{ScoredRestaurant}, \texttt{PipelineResult}
+    \item \texttt{config.py} -- Configurație: chei API, ponderi scoring, valori implicite
+    \item \texttt{timing.py} -- \texttt{TimingCollector}, \texttt{TimingRecord} și decoratorul \texttt{@timed\_task}
+    \item \texttt{api\_clients/} -- Clienți API:
+    \begin{itemize}
+        \item \texttt{base.py} -- Interfața abstractă \texttt{BaseAPIClient}
+        \item \texttt{real\_client.py} -- Implementări reale: \texttt{GeoapifyClient}, \texttt{OverpassClient}, \texttt{FoursquareClient}
+        \item \texttt{mock\_client.py} -- Clienți mock pentru teste (date sintetice cu latență simulată)
+    \end{itemize}
+    \item \texttt{execution/} -- Strategii de execuție:
+    \begin{itemize}
+        \item \texttt{base.py} -- Interfața abstractă \texttt{ExecutionStrategy}
+        \item \texttt{sequential.py} -- Implementarea secvențială
+    \end{itemize}
+    \item \texttt{scoring.py} -- Formula de scoring cu ponderi configurabile și deduplicare
+    \item \texttt{pipeline.py} -- Orchestratorul pipeline-ului
+    \item \texttt{main.py} -- Punct de intrare CLI
+    \item \texttt{experiments.py} -- Runner pentru experimente batch cu export CSV
+\end{itemize}
+
+\subsection{Modelul de Date}
+
+\begin{lstlisting}[caption={Clasele principale de date}]
+@dataclass
+class Query:
+    location: str           # "Constanta"
+    food_types: List[str]   # ["seafood", "fish"]
+    environment: List[str]  # ["seaside", "terrace"]
+    max_distance_km: float  # 10.0
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+@dataclass
+class Restaurant:
+    name: str
+    source: str             # "geoapify", "overpass_osm", "foursquare"
+    rating: float           # 0-5
+    latitude: float
+    longitude: float
+    distance_km: float
+    categories: List[str]
+    price_level: int        # 1-4
+    environment_tags: List[str]
+    review_count: int
+    address: str
+\end{lstlisting}
+
+\subsection{Formula de Scoring}
+
+$$score = 0.30 \cdot S_{rating} + 0.25 \cdot S_{distance} + 0.30 \cdot S_{food} + 0.15 \cdot S_{environment}$$
+
+Unde:
+\begin{itemize}
+    \item $S_{rating} = \frac{rating}{5.0}$ -- normalizare la intervalul $[0, 1]$
+    \item $S_{distance} = \max(0, 1 - \frac{d}{d_{max}})$ -- penalizare liniară cu distanța
+    \item $S_{food}$ = raportul de potrivire fuzzy între tipurile de mâncare căutate și categoriile restaurantului (matching pe subșiruri)
+    \item $S_{environment}$ = raportul de potrivire fuzzy între preferințele de mediu și tag-urile restaurantului
+\end{itemize}
+
+\textbf{Deduplicare:} Restaurantele cu același nume aflate la mai puțin de 100m distanță sunt considerate duplicate. Se păstrează versiunea cu rating-ul mai mare.
+
+% ============================================================
+\section{Specificații Mașină}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Parametru} & \textbf{Valoare} \\
+\midrule
+CPU & AMD Ryzen 7 7745HX with Radeon Graphics \\
+Nuclee fizice & 8 \\
+Nuclee logice & 16 (8 cores $\times$ 2 threads) \\
+RAM & 16 GB \\
+Sistem de operare & Linux 6.6.87.2-microsoft-standard-WSL2 x86\_64 \\
+Python & 3.12.3 \\
+Conexiune rețea & Wi-Fi (apeluri API reale către servere externe) \\
+\bottomrule
+\end{tabular}
+\caption{Specificațiile mașinii de test}
+\label{tab:machine}
+\end{table}
+
+% ============================================================
+\section{Implementare Secvențială}
+
+\subsection{Descrierea Fluxului}
+
+În modul secvențial, toate operațiile se execută strict una după alta:
+
+\begin{enumerate}
+    \item Se construiește query-ul din parametrii utilizatorului (locație, tip mâncare, mediu)
+    \item Se rezolvă coordonatele GPS ale orașului (cache local sau geocodare API)
+    \item Se apelează API \#1 (\textbf{Geoapify}) -- se așteaptă răspunsul complet
+    \item Se apelează API \#2 (\textbf{Overpass/OSM}) -- se așteaptă răspunsul complet
+    \item Se apelează API \#3 (\textbf{Foursquare}) -- se așteaptă răspunsul complet (opțional)
+    \item Se deduplică rezultatele (eliminare duplicate pe bază de nume + locație)
+    \item Se calculează scorurile pentru fiecare restaurant
+    \item Se sortează restaurantele descrescător după scor
+    \item Se returnează top K rezultate
+\end{enumerate}
+
+\begin{lstlisting}[caption={Implementarea SequentialStrategy}]
+class SequentialStrategy(ExecutionStrategy):
+    mode_name = "sequential"
+
+    def execute(self, query, clients, scorer):
+        all_restaurants = []
+        for client in clients:
+            start = time.perf_counter()
+            try:
+                results = client.search(query)
+            except Exception as e:
+                # Log error, continue with other APIs
+                continue
+            end = time.perf_counter()
+            self.collector.record(
+                f"api_{client.name}", start, end,
+                count=len(results))
+            all_restaurants.extend(results)
+
+        # Deduplication, scoring, ranking
+        deduped = scorer.deduplicate(all_restaurants)
+        scored = scorer.score_all(deduped, query)
+        ranked = sorted(scored,
+                       key=lambda x: x.score,
+                       reverse=True)
+        return ranked
+\end{lstlisting}
+
+\subsection{Tratarea Erorilor}
+
+Dacă un client API eșuează (timeout, eroare de rețea, răspuns invalid), execuția continuă cu ceilalți clienți. Eroarea este înregistrată în \texttt{TimingCollector} cu metadatele corespunzătoare, iar utilizatorul primește un avertisment.
+
+\subsection{Instrumentare Timing}
+
+Fiecare etapă este instrumentată cu \texttt{TimingCollector}, care înregistrează:
+\begin{itemize}
+    \item Timpul de start și end (relativ la începutul pipeline-ului), folosind \texttt{time.perf\_counter()}
+    \item Durata în secunde
+    \item Metadate: număr de rezultate returnate, mesaje de eroare (dacă există)
+\end{itemize}
+
+Datele de timing sunt exportate în format CSV prin metoda \texttt{to\_csv\_dict()}, care aplatizează înregistrările într-un dicționar cu coloane separate per etapă de pipeline.
+
+% ============================================================
+\section{Rezultate Experimentale}
+
+\subsection{Configurarea Experimentelor}
+
+Experimentele au fost rulate folosind \textbf{clienți API reali} (Geoapify, Overpass, Foursquare), cu apeluri de rețea efective către serverele externe.
+
+\begin{itemize}
+    \item \textbf{6 query-uri diferite} (orașe și tipuri de mâncare variate):
+    \begin{itemize}
+        \item Constanța / seafood / seaside
+        \item București / italian + pizza / cozy
+        \item Cluj-Napoca / romanian + traditional
+        \item Timișoara / fast food / central
+        \item Iași / french / elegant
+        \item Brașov / steakhouse / rustic + terrace
+    \end{itemize}
+    \item 1, 2 și 3 surse API per configurație
+    \item 3 rulări per query per configurație
+    \item Total: $6 \times 3 \times 3 = 54$ rulări
+\end{itemize}
+
+\subsection{Rezultate -- Timpi de Execuție}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Nr. APIs} & \textbf{Media (s)} & \textbf{Std Dev (s)} & \textbf{Min / Max (s)} \\
+\midrule
+1 API (Geoapify)              & 0.6907 & 0.2442 & 0.4190 / 1.2432 \\
+2 APIs (Geoapify + Overpass)  & 9.0550 & 3.5290 & 1.4212 / 14.1986 \\
+3 APIs (+ Foursquare)         & 8.7294 & 4.5106 & 1.7785 / 16.7381 \\
+\bottomrule
+\end{tabular}
+\caption{Timpi de execuție totali -- mod secvențial}
+\label{tab:results}
+\end{table}
+
+\subsection{Timpi Medii per Sursă API}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Sursă API} & \textbf{Timp mediu (s)} & \textbf{Observații} \\
+\midrule
+Geoapify         & $\sim$0.69 -- 0.78 & Rapid, răspunsuri consistente \\
+Overpass (OSM)   & $\sim$7.39 -- 8.35 & Foarte variabil, depinde de încărcarea serverului \\
+Foursquare       & $\sim$0.56          & Rapid, răspunsuri consistente \\
+\midrule
+Deduplicare      & $<$ 0.001          & Neglijabil \\
+Scoring          & $<$ 0.001          & Neglijabil \\
+Ranking          & $<$ 0.001          & Neglijabil \\
+\bottomrule
+\end{tabular}
+\caption{Timpi medii per componentă a pipeline-ului}
+\label{tab:api_times}
+\end{table}
+
+\subsection{Analiza Rezultatelor}
+
+\subsubsection{Dominanța latenței API}
+
+Datele experimentale confirmă că \textbf{latența API domină complet timpul de execuție}. Timpii de procesare locală (deduplicare, scoring, ranking) sunt sub 1ms, reprezentând mai puțin de 0.01\% din timpul total.
+
+$$T_{total} \approx \sum_{i=1}^{N} T_{API_i}$$
+
+\subsubsection{Variabilitatea Overpass API}
+
+API-ul Overpass (OpenStreetMap) prezintă cea mai mare variabilitate, cu timpi între 0.47s și 15.27s. Aceasta se datorează:
+\begin{itemize}
+    \item Încărcării serverelor publice Overpass (shared infrastructure)
+    \item Complexității interogărilor Overpass QL (filtrare pe rază + tip bucătărie)
+    \item Lipsei unui SLA garantat (serviciu gratuit, open-source)
+\end{itemize}
+
+\subsubsection{Scalabilitate Liniară}
+
+Cu 1 API, timpul mediu este $\sim$0.69s. Cu 2 APIs, crește la $\sim$9.05s (dominat de Overpass). Cu 3 APIs, timpul rămâne similar ($\sim$8.73s) deoarece Foursquare este rapid ($\sim$0.56s) și se adaugă la un total deja dominat de Overpass.
+
+Comportamentul este strict secvențial:
+$$T_{2\text{ APIs}} \approx T_{\text{Geoapify}} + T_{\text{Overpass}} \approx 0.71 + 8.35 = 9.06s$$
+$$T_{3\text{ APIs}} \approx T_{\text{Geoapify}} + T_{\text{Overpass}} + T_{\text{Foursquare}} \approx 0.78 + 7.39 + 0.56 = 8.73s$$
+
+\subsubsection{Oportunitate de Paralelizare}
+
+Apelurile API sunt \textbf{complet independente} -- nu există dependențe de date între ele. În modul secvențial, fiecare apel blochează execuția până la primirea răspunsului. Cu paralelizare (async I/O), timpul ar scădea la:
+
+$$T_{paralel} \approx \max(T_{API_1}, T_{API_2}, T_{API_3})$$
+
+Speedup-ul teoretic pentru 3 APIs:
+$$S = \frac{T_{secvential}}{T_{paralel}} = \frac{T_1 + T_2 + T_3}{\max(T_1, T_2, T_3)} \approx \frac{8.73}{7.39} \approx 1.18\times$$
+
+În cazul acesta, speedup-ul este modest deoarece Overpass domină. Pentru API-uri cu latențe echilibrate, speedup-ul ar fi mai aproape de $N$ (numărul de surse).
+
+% ============================================================
+\section{Utilizare}
+
+\subsection{Interfața CLI}
+
+\begin{lstlisting}[language=bash, caption={Exemple de utilizare}]
+# Instalare dependente
+pip install -r requirements.txt
+
+# Cautare restaurante in Constanta
+python main.py --location "Constanta" \
+    --food "seafood,fish" \
+    --environment "seaside,terrace" \
+    --apis 2 --top-k 5
+
+# Rulare experimente batch
+python experiments.py --runs-per-query 5 \
+    --api-counts "1,2,3" \
+    --output report/experiment_results.csv
+\end{lstlisting}
+
+\subsection{Parametri CLI}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Parametru} & \textbf{Implicit} & \textbf{Descriere} \\
+\midrule
+\texttt{--location} & (obligatoriu) & Numele orașului \\
+\texttt{--food} & \texttt{""} & Tipuri de mâncare, separate prin virgulă \\
+\texttt{--environment} & \texttt{""} & Preferințe de mediu, separate prin virgulă \\
+\texttt{--max-distance} & 10.0 & Distanța maximă în km \\
+\texttt{--apis} & 2 & Număr de surse API (1--3) \\
+\texttt{--top-k} & 10 & Număr de rezultate afișate \\
+\bottomrule
+\end{tabular}
+\caption{Parametrii liniei de comandă}
+\label{tab:cli}
+\end{table}
+
+% ============================================================
+\section{Concluzii și Direcții Viitoare}
+
+\subsection{Concluzii S6}
+
+\begin{itemize}
+    \item Varianta secvențială funcționează corect cu API-uri reale și produce recomandări relevante
+    \item Timpii de execuție sunt dominați de latența API (în special Overpass/OSM)
+    \item Procesarea locală (deduplicare, scoring, ranking) este neglijabilă ($<$ 1ms)
+    \item Variabilitatea mare a timpilor Overpass (0.47s -- 15.27s) subliniază importanța toleranței la erori
+    \item Arhitectura Strategy Pattern facilitează adăugarea variantelor paralele fără modificarea codului existent
+\end{itemize}
+
+\subsection{Direcții Viitoare}
+
+\begin{enumerate}
+    \item \textbf{Paralel \#1 (Async I/O)}: Toate apelurile API lansate simultan cu \texttt{asyncio} + \texttt{aiohttp} -- $T = \max(T_{API_1}, T_{API_2}, T_{API_3})$
+    \item \textbf{Paralel \#2 (Multiprocessing)}: Scoring distribuit pe multiple procese pentru seturi mari de date
+    \item \textbf{Paralel \#3 (Hibrid)}: Combinarea async I/O (pentru API) + multiprocessing (pentru scoring)
+    \item Vizualizare performanță: grafice Gantt pentru timeline-ul execuției, grafice speedup
+\end{enumerate}
+
+\end{document}
