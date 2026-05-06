@@ -1,0 +1,1011 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[romanian]{babel}
+\usepackage[margin=2cm, top=2.5cm, bottom=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{colortbl}
+\usepackage{tikz}
+\usepackage{mdframed}
+
+% ── Culori ───────────────────────────────────────────────────────────────────
+\definecolor{primary}{RGB}{20, 70, 150}
+\definecolor{accent}{RGB}{200, 40, 40}
+\definecolor{green1}{RGB}{0, 110, 50}
+\definecolor{lightgray}{RGB}{248, 248, 248}
+\definecolor{darkgray}{RGB}{70, 70, 70}
+\definecolor{codered}{RGB}{180, 0, 0}
+\definecolor{tblh}{RGB}{20, 70, 150}
+\definecolor{numcol}{RGB}{200, 40, 40}
+
+% ── Titluri ───────────────────────────────────────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{primary}}{\thesection.}{0.5em}{}[\titlerule]
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{numcol}}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{darkgray}}{}{0em}{\uline}
+
+% underline pentru subsubsection
+\usepackage{ulem}
+\normalem
+
+% ── Cod ───────────────────────────────────────────────────────────────────────
+\lstset{
+  backgroundcolor=\color{lightgray},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{primary}\bfseries,
+  commentstyle=\color{green1},
+  stringstyle=\color{codered},
+  frame=single, framerule=0.4pt,
+  rulecolor=\color{primary!40},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+}
+
+% ── Boxuri ────────────────────────────────────────────────────────────────────
+\tcbuselibrary{skins, breakable}
+
+\newtcolorbox{defbox}[1]{
+  colback=primary!7, colframe=primary,
+  fonttitle=\bfseries\small, title=#1,
+  breakable, left=4pt, right=4pt, top=3pt, bottom=3pt,
+}
+\newtcolorbox{formulabox}{
+  colback=accent!7, colframe=accent,
+  breakable, left=4pt, right=4pt, top=3pt, bottom=3pt,
+}
+\newtcolorbox{notebox}{
+  colback=green1!7, colframe=green1,
+  fonttitle=\bfseries\small, title=Important,
+  breakable, left=4pt, right=4pt, top=3pt, bottom=3pt,
+}
+
+% ── Header / Footer ──────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{darkgray}\textbf{APD — Parțial: Aspecte teoretice fundamentale}}
+\fancyhead[R]{\small\color{darkgray}\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\thead}[1]{\cellcolor{tblh}\color{white}\textbf{#1}}
+\newcommand{\subiect}[2]{\subsection{Subiect \textcolor{numcol}{#1} — #2}}
+
+\hypersetup{colorlinks=true, linkcolor=primary}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\Huge\bfseries\color{primary}Algoritmi Paraleli și Distribuiți\par}
+  \vspace{0.6cm}
+  {\Large\color{darkgray}Subiecte Examen Parțial\par}
+  \vspace{0.3cm}
+  {\large\color{darkgray}Partea 1 — Aspecte Teoretice Fundamentale\par}
+  \vspace{1.5cm}
+  \hrule\vspace{0.4cm}
+  \begin{tabular}{rll}
+    \textbf{Cap. 1} & Introducere & Subiecte 1–4 \\
+    \textbf{Cap. 2} & Tipuri și nivele de paralelism & Subiecte 5–11 \\
+    \textbf{Cap. 3} & Modele de calcul paralel & Subiecte 12–18 \\
+    \textbf{Cap. 4} & Măsurarea performanțelor & Subiecte 19–22 \\
+    \textbf{Cap. 5} & Arhitecturi & Subiecte 23–25 \\
+    \textbf{Cap. 6} & Proiectarea programelor paralele & Subiecte 26–29 \\
+  \end{tabular}
+  \vspace{0.4cm}\hrule
+  \vfill
+\end{titlepage}
+
+\tableofcontents\newpage
+
+%%============================================================
+\section{Introducere}
+%%============================================================
+
+\subiect{1}{Elementele calculului paralel: HW, SO, App + scop}
+
+Un sistem de calcul paralel are 3 componente:
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\thead{Componentă} & \thead{Detalii} \\
+\midrule
+\textbf{Hardware} & Mai multe procesoare, mai multe memorii, rețea de interconectare de mare viteză \\
+\textbf{Sistem de Operare} & SO care permite calcul paralel; elemente de programare ce permit exprimarea și orchestrarea concurenței \\
+\textbf{Aplicații software} & Biblioteci/sisteme care permit paralelizare/distribuție (MPI, OpenMP, Pthreads) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Scopul calculului paralel:}
+\begin{enumerate}[noitemsep]
+  \item Obținerea \textbf{accelerării} (speedup) față de varianta secvențială
+  \item Rezolvarea problemelor care necesită o cantitate \textbf{mare de memorie}
+  \item Utilizarea adecvată a procesoarelor multicore moderne
+\end{enumerate}
+
+\begin{notebox}
+Fiecare din cele 3 componente HW (procesor, memorie, cale de acces) poate deveni o \textbf{gâtuire} (bottleneck). Paralelismul adresează fiecare dintre ele.
+\end{notebox}
+
+\subiect{2}{Context, definiții, termeni, limitări ale sistemelor distribuite}
+
+\begin{defbox}{Definiții fundamentale}
+\begin{description}[leftmargin=3.5cm, style=nextline, noitemsep]
+  \item[\textbf{Paralelism}] Utilizarea \emph{simultană} a mai multor resurse de calcul pentru a obține accelerarea unui program
+  \item[\textbf{Concurență}] Administrarea \emph{eficientă și corectă} a accesului la resurse de calcul
+  \item[\textbf{Task/Activitate}] Calcul care poate rula concurent cu alte activități (program, proces, fir, HW dedicat)
+  \item[\textbf{Atomicitate}] Proprietatea unei activități de a fi indivizibilă
+  \item[\textbf{Consensus}] Acordul între două sau mai multe activități asupra unui predicat (valoare, lock, terminare)
+  \item[\textbf{Consistență}] Reguli și proprietăți convenite între activități privind valorile variabilelor sau mesajele trimise (\emph{data race})
+  \item[\textbf{Multicast}] Transmiterea unui mesaj către mai mulți destinatari fără constrângeri de ordine
+\end{description}
+\end{defbox}
+
+\textbf{Avantajele sistemelor distribuite:} partajarea datelor și resurselor, comunicare, flexibilitate, cost scăzut, viteză prin load balancing, toleranță la defecte.
+
+\textbf{Limitările sistemelor distribuite:}
+\begin{itemize}[noitemsep]
+  \item \textbf{Software}: dificultatea dezvoltării aplicațiilor
+  \item \textbf{Rețea}: întârzieri, saturație, pierderea pachetelor
+  \item \textbf{Securitate}: acces facil la date
+  \item \textbf{Consensus}: două noduri trebuie să convină printr-un canal nesigur
+  \item \textbf{Transmiterea atomică}: un nod transmite; dacă se primește, un nod funcțional retransmite; toate nodurile funcționale transmit același mesaj în aceeași ordine
+\end{itemize}
+
+\begin{notebox}
+\textbf{Transmiterea atomică $\equiv$ Consensus} (sunt echivalente). Problema celor 2 generali demonstrează că nu există soluție în prezența eșecurilor arbitrare.
+\end{notebox}
+
+\subiect{3}{Paralel vs. Distribuit}
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\thead{Caracteristică} & \thead{Paralel} & \thead{Distribuit} \\
+\midrule
+Scop general & Viteză & Comoditate \\
+Interacțiuni & Frecvente & Rare \\
+Granularitate & Mare & Mică \\
+Siguranță funcționare & Presupusă adevărată & Posibil neadevărată \\
+Comunicare & Memorie partajată & Transmitere mesaje \\
+Cuplare & Strânsă & Slabă \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Sistem paralel} = colecție de procesoare \emph{strâns cuplate} din același sistem; comunică prin memorie partajată; execută semi-independent și se coordonează
+  \item \textbf{Sistem distribuit} = colecție de sisteme \emph{autonome} conectate în rețea; comunică prin mesaje; problema principală: \emph{toleranța la defecte}
+\end{itemize}
+
+\begin{notebox}
+\textit{Leslie Lamport:} „A distributed system is one in which the failure of a computer you didn't even know existed can render your own computer unusable."
+\end{notebox}
+
+\subiect{4}{Dificultăți în procesarea paralelă}
+
+\begin{enumerate}
+  \item \textbf{Debugging/Depanare} — dificil de replicat contextul din cauza \emph{interleaving}-ului; erori nedeterministe
+  \item \textbf{Corectitudinea} — demonstrarea formală a corectitudinii unui algoritm paralel este o provocare; incorectitudinea poate conduce la \emph{undefined behaviour}
+  \item \textbf{Benchmark} — evaluarea performanțelor prin rulări/simulări este aspectul principal; pe input-uri mici poate fi incorect ignorat
+  \item \textbf{Comunicarea între procesoare} — proiectarea optimă și integrată a procesoarelor și memoriilor; costul de comunicare poate anula câștigul de paralelizare
+\end{enumerate}
+
+%%============================================================
+\section{Tipuri și Nivele de Paralelism}
+%%============================================================
+
+\subiect{5}{Taxonomia lui Flynn}
+
+Clasificarea arhitecturilor de calcul după numărul fluxurilor de instrucțiuni și de date:
+
+\begin{center}
+\begin{tabular}{ccll}
+\toprule
+\thead{Tip} & \thead{Instrucțiuni} & \thead{Date} & \thead{Descriere și exemple} \\
+\midrule
+\textbf{SISD} & 1 flux & 1 flux & Calculator clasic secvențial (von Neumann) \\
+\textbf{SIMD} & 1 flux & Multiple & GPU, instrucțiuni vectoriale (SSE, AVX) \\
+\textbf{MISD} & Multiple & 1 flux & Teoretic; rar întâlnit în practică \\
+\textbf{MIMD} & Multiple & Multiple & Sisteme multiprocesor moderne \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{SIMD} — o singură unitate de control; toate procesoarele execută aceeași instrucțiune pe date diferite.
+\begin{itemize}[noitemsep]
+  \item Avantaje: mai puțin HW, o singură copie a programului, comunicare minimă
+  \item Dezavantaje: rigid, se pretează doar problemelor bine structurate (ex: adunare vectori)
+\end{itemize}
+
+\textbf{MIMD} — fiecare procesor execută flux propriu de instrucțiuni pe date proprii. Categoria cea mai comună în practică.
+\begin{itemize}[noitemsep]
+  \item Avantaje: flexibil, ușor de construit pe microprocesoare existente
+  \item Dezavantaje: complexitate crescută, debugging mai dificil
+\end{itemize}
+
+\subiect{6}{PRAM}
+
+\begin{defbox}{PRAM — Parallel Random Access Machine}
+Model teoretic de calcul paralel cu \textbf{memorie partajată} accesibilă în \textbf{timp constant} (cost 0). Este omologul modelului von Neumann pentru sisteme paralele.
+\end{defbox}
+
+\textbf{Componente:} $p$ procesoare sincrone + memorie locală per procesor + memorie partajată globală.
+
+\textbf{Instrucțiune PRAM:} \lstinline|For all x in X do in parallel #instruction(x)|
+
+\textbf{Limitare:} Nu se poate construi fizic — costul conectării a $p$ procesoare la memorie de dimensiune $m$ este $O(p \cdot m)$.
+
+\subsubsection{Variante PRAM după accesul concurent:}
+
+\begin{center}
+\begin{tabular}{lllp{5.5cm}}
+\toprule
+\thead{Variantă} & \thead{Citire} & \thead{Scriere} & \thead{Observație} \\
+\midrule
+\textbf{EREW} & Exclusivă & Exclusivă & Cel mai realist \\
+\textbf{CREW} & Concurentă & Exclusivă & Citirile simultane OK \\
+\textbf{ERCW} & Exclusivă & Concurentă & Rar folosit \\
+\textbf{CRCW} & Concurentă & Concurentă & Cel mai puțin realist \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Rezolvarea scrierii concurente (CRCW):}
+\begin{itemize}[noitemsep]
+  \item \textbf{Valoare comună}: toate procesele scriu aceeași valoare
+  \item \textbf{Arbitrar}: se acceptă o scriere aleatoare
+  \item \textbf{Prioritizat}: procesul cu prioritate mai mare câștigă
+  \item \textbf{Sumă}: se scrie suma valorilor trimise
+\end{itemize}
+
+\textbf{Exemplu — Suma prefixelor în $O(\log n)$:}
+\begin{itemize}[noitemsep]
+  \item Input: $\{4, 3, 5, 1, 8, 11, 2, 9\}$
+  \item Output: $\{4, 7, 12, 13, 21, 32, 34, 43\}$
+  \item Abordare secvențială: $O(n)$; abordare paralelă cu arbore binar: $O(\log n)$
+\end{itemize}
+
+\subiect{7}{Metrici de evaluare pentru rețelele de interconectare}
+
+\begin{center}
+\begin{tabular}{lcp{8cm}}
+\toprule
+\thead{Metrică} & \thead{Direcție} & \thead{Definiție} \\
+\midrule
+\textbf{Diametru} & $\downarrow$ mai bine & Lungimea maximă a drumului minim dintre oricare 2 noduri \\
+\textbf{Conectivitate} & $\uparrow$ mai bine & Nr. minim de conexiuni ce trebuie eliminate pt. a obține 2 componente \\
+\textbf{Lățimea bisecțiunii} & $\uparrow$ mai bine & Nr. minim de muchii ce taie rețeaua în 2 jumătăți \textbf{egale} \\
+\textbf{Lăț. bandă bisecțiunii} & $\uparrow$ mai bine & Volumul minim de date transferabile între cele 2 jumătăți \\
+\textbf{Cost} & $\downarrow$ mai bine & Numărul total de legături din rețea \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subiect{8}{Topologiile rețelelor}
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+\thead{Topologie} & \thead{Diametru} & \thead{Conectivitate} & \thead{Lăț. bisecțiunii} & \thead{Cost} \\
+\midrule
+\textbf{Bus} & $O(1)$ & $O(1)$ & $O(1)$ & $O(p)$ \\
+\textbf{Crossbar} & $O(1)$ & $O(1)$ & $O(p)$ & $O(p^2)$ \\
+\textbf{Inel} & $O(p)$ & $O(1)$ & $O(1)$ & $O(p)$ \\
+\textbf{Grilă 2D} & $O(\sqrt{p})$ & $O(1)$ & $O(\sqrt{p})$ & $O(p)$ \\
+\textbf{Hipercub} & $O(\log p)$ & $O(\log p)$ & $O(p/2)$ & $O(p \log p)$ \\
+\textbf{Arbore} & $O(\log p)$ & $O(1)$ & $O(1)$ & $O(p)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Rețele statice (directe)}: conexiuni punct-la-punct fixe; folosite pt. sisteme cu memorie distribuită
+  \item \textbf{Rețele dinamice (indirecte)}: comutatoare; folosite pt. conectarea procesoarelor cu memoria
+  \item \textbf{Topologii carteziene}: liniare, 2D mesh, 3D mesh
+  \item \textbf{Hipercubul}: $p = 2^k$ noduri; diametru $k = \log_2 p$; fiecare nod are $\log_2 p$ vecini
+\end{itemize}
+
+\subiect{9}{Costurile de comunicare în sistemele paralele}
+
+\begin{formulabox}
+\[
+T_{com} = T_s + T_w \cdot m
+\]
+\begin{itemize}[noitemsep]
+  \item $T_s$ = \textbf{startup time} — inițializarea: adăugarea header-ului, rutarea, stabilirea conexiunii
+  \item $T_w$ = \textbf{timp per cuvânt} $= 1\,/\,\text{lățimea canalului}$
+  \item $m$ = dimensiunea mesajului în cuvinte
+\end{itemize}
+\textbf{Observație}: $T_s \gg T_w$ în practică, deci costul dominant este \emph{numărul} de mesaje, nu dimensiunea lor.
+\end{formulabox}
+
+\textbf{Mecanisme de rutare:}
+\begin{itemize}[noitemsep]
+  \item \textbf{Minimale vs. Suboptimale} — drumul cel mai scurt sau nu
+  \item \textbf{Deterministe vs. Adaptive} — cale fixă sau aleasă dinamic
+  \item \textbf{Dilatare} = numărul maxim de linii atribuite unei muchii
+  \item \textbf{Congestionare} = numărul maxim de mesaje pe o singură legătură
+\end{itemize}
+
+\textbf{Coerența cache-urilor} (sisteme cu memorie partajată):
+\begin{itemize}[noitemsep]
+  \item \textbf{Invalidarea}: la modificare, toate copiile din alte cache-uri sunt invalidate
+  \item \textbf{Update}: la modificare, toate copiile sunt actualizate
+\end{itemize}
+
+\subiect{10}{Concurență vs. Paralelism}
+
+\begin{defbox}{Definiții distincte}
+\begin{description}[leftmargin=3cm, noitemsep]
+  \item[\textbf{Concurență}] Situația în care mai multe task-uri sunt \emph{logic} active la un moment dat (nu neapărat simultan fizic)
+  \item[\textbf{Paralelism}] Situația în care mai multe task-uri sunt \emph{fizic} active \textbf{în același timp}
+\end{description}
+\textbf{Programele paralele} $\supset$ \textbf{Programele concurente}
+\end{defbox}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\thead{Aplicație concurentă} & \thead{Aplicație paralelă} \\
+\midrule
+Task-urile se execută simultan prin semantica aplicației & Task-urile se execută efectiv simultan \\
+Asigurată prin proiectare (problema intrinsec concurentă) & Problema NU trebuie să fie intrinsec concurentă \\
+Scopul: corectitudine & Scopul: reducerea timpului de rulare \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Rob Pike}: \emph{„Concurrency is not parallelism"} — concurența este o problemă de \emph{proiectare}; paralelismul adresează \emph{eficiența la rulare}.
+
+\subiect{11}{Pipelining}
+
+\begin{defbox}{Pipelining}
+Descompune un proces secvențial în $K$ \textbf{stadii/segmente} distincte, fiecare dedicat unui procesor. Mai multe elemente sunt procesate simultan, fiecare aflându-se în stadii diferite.
+\end{defbox}
+
+\begin{formulabox}
+\[
+T_k = (K + N - 1) \cdot T \qquad\qquad S = \frac{N \cdot K}{K + N - 1}
+\]
+\begin{itemize}[noitemsep]
+  \item $K$ = numărul de stadii; $\;N$ = numărul de elemente de procesat
+  \item $T$ = durata unui ciclu = \textbf{cel mai lent stadiu}
+  \item Pentru $N \gg K$: $S \approx K$ (accelerare $\approx$ numărul de stadii)
+\end{itemize}
+\end{formulabox}
+
+\textbf{Proprietăți:}
+\begin{itemize}[noitemsep]
+  \item Nu îmbunătățește execuția \emph{unui} element, ci a \emph{întregului proces}
+  \item Limitarea: cel mai lent stadiu impune ritmul (\emph{bottleneck})
+  \item Trebuie luat în calcul timpul de \emph{umplere} ($K-1$ cicluri) și \emph{golire} a pipeline-ului
+  \item Diferența mare între timpii stadiilor $\Rightarrow$ accelerare mai mică
+\end{itemize}
+
+\textbf{Exemplu — spălătorie (K=3, N=4):}
+Secvențial: $3 \times 4 = 12$ cicluri. \quad Pipeline: $(3 + 4 - 1) = 6$ cicluri.
+
+%%============================================================
+\section{Modele de Calcul Paralel}
+%%============================================================
+
+\subiect{12}{Modelul cu paralelizare a datelor}
+
+\begin{defbox}{Data Parallelism}
+Datele de intrare sunt \textbf{împărțite} între procesoare. Fiecare procesor procesează un segment diferit executând \emph{aceeași} operație.
+\end{defbox}
+
+\textbf{Proprietăți:}
+\begin{itemize}[noitemsep]
+  \item Include \textbf{paralelismul în buclă} (loop parallelism)
+  \item Adecvat pentru mașinile \textbf{SIMD}
+  \item Comunicația este de obicei \textbf{implicită} (compilatorul sau runtime-ul o gestionează)
+  \item Granularitate controlată de programator prin dimensiunea partiției
+\end{itemize}
+
+\textbf{Exemplu:} adunare element cu element a două vectori — procesorul $k$ calculează $c[k] = a[k] + b[k]$.
+
+\subiect{13}{Modelul de paralelizare cu grafuri}
+
+\begin{defbox}{Task Graph / Computation Graph}
+Algoritmul este descompus în mai multe \textbf{secțiuni distincte} (task-uri); fiecare se atribuie unui procesor diferit. Paralelismul este exprimat printr-un \textbf{graf de dependințe} (DAG).
+\end{defbox}
+
+\textbf{Primitive:}
+\begin{itemize}[noitemsep]
+  \item \textbf{fork()}: creează un nou fir/task copil
+  \item \textbf{join()}: întrerupe firul curent până când alt fir își termină execuția
+  \item \textbf{spawn()}: crează și execută un nou fir asincron
+\end{itemize}
+
+\textbf{Proprietăți:}
+\begin{itemize}[noitemsep]
+  \item De obicei nu conduce la un grad înalt de paralelizare
+  \item Ajută la executarea task-urilor în ordinea corectă (respectând dependențele)
+  \item \textbf{Calea critică} în DAG determină limita inferioară a timpului paralel
+\end{itemize}
+
+\subiect{14}{Metode de descompunere}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\thead{Metodă} & \thead{Descriere și când se folosește} \\
+\midrule
+\textbf{Descompunerea datelor} & Partiționăm datele de I/O $\to$ task-uri; cea mai folosită; potrivită când volumul de date e mare \\
+\textbf{Descompunerea funcțională} & Partiționăm funcțiile/calculele; datele disjuncte $\to$ task-uri direct \\
+\textbf{Recursivă} & Pentru divide et impera (quicksort, min, max); fiecare subproblemă devine un task \\
+\textbf{Exploratorie} & Spațiul soluțiilor împărțit în mulțimi disjuncte; poate produce \emph{speedup superliniar} \\
+\textbf{Speculativă} & Pașii următori depind de rezultatul curent; se execută predicții; dacă greșite, se aruncă \\
+\textbf{Hibridă} & Combinație a metodelor de mai sus, aplicate la module diferite ale aceleiași probleme \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{notebox}
+\textbf{Descompunerea datelor vs. funcțională} — sunt complementare: descompunerea datelor merge \emph{de la date la procesare}; cea funcțională merge \emph{de la procesare la date}.
+\end{notebox}
+
+\textbf{Pași de verificare a calității descompunerii:}
+\begin{enumerate}[noitemsep]
+  \item Nr. task-uri $\geq 10 \times$ nr. procesoare?
+  \item Evită procesări/date redundante?
+  \item Task-urile sunt de dimensiuni comparabile?
+  \item Nr. task-uri scalează cu dimensiunea problemei?
+  \item Au fost identificate mai multe variante de descompunere?
+\end{enumerate}
+
+\subiect{15}{Alocarea task-urilor, calea critică}
+
+\textbf{Calea critică (Critical Path):}
+\begin{itemize}[noitemsep]
+  \item = cel mai lung drum în graful DAG de dependențe
+  \item Determină \textbf{limita inferioară} a timpului de execuție paralel — nu poate fi redus sub această valoare indiferent de câte procesoare avem
+  \item Task-urile de pe calea critică trebuie prioritizate la alocare
+\end{itemize}
+
+\textbf{Alocarea eficientă trebuie să:}
+\begin{itemize}[noitemsep]
+  \item \textbf{Maximizeze concurența}: task-uri independente $\to$ procesoare \emph{diferite}
+  \item \textbf{Minimizeze interacțiunea}: task-uri cu comunicare frecventă $\to$ \emph{același} procesor
+  \item \textbf{Minimizeze timpul total}: prioritizează task-urile de pe calea critică
+\end{itemize}
+
+\begin{notebox}
+Problema alocării este \textbf{NP-completă} în cazul general! Se folosesc euristici și algoritmi specializați.
+\end{notebox}
+
+\textbf{Surse de overhead la alocare:}
+\begin{itemize}[noitemsep]
+  \item Încărcarea dezechilibrată a procesoarelor (load imbalance)
+  \item Comunicarea între procese
+  \item Coordonarea/sincronizarea și partajarea datelor
+\end{itemize}
+
+\subiect{16}{Echilibrarea (Load Balancing)}
+
+\begin{defbox}{Load Balancing}
+Distribuirea echilibrată a task-urilor pe procesoare astfel încât fiecare procesor să aibă aproximativ aceeași cantitate de lucru. Scopul: \textbf{minimizarea timpului de așteptare} și maximizarea utilizării.
+\end{defbox}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\thead{Algoritm} & \thead{Descriere} \\
+\midrule
+\textbf{Bisecțiunea recursivă} & Divide domeniul în subdomenii de cost $\approx$ egal, minimizând comunicarea inter-graniță (divide and conquer) \\
+\textbf{Bisecțiunea coordinată} & Varianta pt. griduri neregulate \\
+\textbf{Bisecțiunea de tip graf} & Se identifică 2 extremități ale grafului; fiecare nod alocat extremității apropiate \\
+\textbf{Local (Greedy)} & Compară încărcarea cu vecinii; transferă task-uri dacă diferența $>$ prag \\
+\textbf{Probabilistic} & Alocă aleator; bun când $N_\text{task} \gg N_\text{proc}$; cost mic, scalabilitate bună \\
+\textbf{Manager/Worker} & Manager gestionează pool de task-uri; worker-ii cer și execută task-uri \\
+\textbf{Scheduling} & Pool centralizat/distribuit; task-uri noi adăugate dinamic \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Structura Manager/Worker:}
+\begin{itemize}[noitemsep]
+  \item \textbf{Worker}: face cereri repetate, rezolvă task-uri, poate trimite task-uri noi
+  \item \textbf{Manager}: gestionează pool-ul, răspunde cererilor
+  \item \textbf{Ierarhic}: sub-manageri pentru grupuri de worker-i (reduce bottleneck-ul managerului)
+  \item \textbf{Descentralizat}: fiecare procesor are propriul pool de task-uri
+\end{itemize}
+
+\subiect{17}{Modele de calcul paralel: memorie partajată, fire de execuție, transmitere de mesaje și paralelizarea datelor}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lXll}
+\toprule
+\thead{Model} & \thead{Principiu} & \thead{Exemplu} & \thead{Sistem} \\
+\midrule
+\textbf{Memorie partajată} & Procesele comunică accesând același spațiu de adresare; sincronizare prin lock-uri/semafoare & Pthreads, OpenMP & UMA/NUMA \\
+\addlinespace
+\textbf{Fire de execuție} & Firele din același proces partajează memoria; comunicare implicită prin variabile comune; sincronizare explicită & C++ threads, Java threads & Multicore \\
+\addlinespace
+\textbf{Transmitere de mesaje} & Procesele au memorie proprie; comunică explicit prin send/receive; nu există date partajate & MPI, PVM & Memorie distribuită \\
+\addlinespace
+\textbf{Paralelizarea datelor} & Aceeași operație pe segmente diferite de date; comunicare implicită & STL par, CUDA & SIMD/GPU \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsubsection{Modelul cu memorie partajată}
+\begin{itemize}[noitemsep]
+  \item Datele private și partajate sunt \textbf{explicit declarate/separate}
+  \item Sincronizarea se realizează prin \textbf{operații atomice} asupra datelor partajate
+  \item Sincronizarea este \textbf{explicită și distinctă} față de comunicare
+  \item Risc: \emph{data race}, \emph{deadlock}
+\end{itemize}
+
+\subsubsection{Modelul cu transmitere de mesaje}
+\begin{itemize}[noitemsep]
+  \item Nu există date \textbf{explicit partajate} între procese
+  \item Comunicarea este \textbf{explicită} (send/receive)
+  \item Sincronizarea este \textbf{implicită} în comunicare (receive blochează)
+  \item Scalabilitate mai bună decât memoria partajată
+\end{itemize}
+
+\subiect{18}{Hibride}
+
+\begin{defbox}{Model hibrid}
+Combină \textbf{transmiterea de mesaje} (între noduri) cu \textbf{memoria partajată} (în interiorul unui nod). Cel mai comun: \textbf{MPI + OpenMP}.
+\end{defbox}
+
+\textbf{Arhitectură tipică:}
+\begin{itemize}[noitemsep]
+  \item Cluster de SMP-uri: fiecare nod = SMP cu mai multe core-uri
+  \item \textbf{Intra-nod}: OpenMP sau Pthreads (memorie partajată)
+  \item \textbf{Inter-noduri}: MPI (transmitere de mesaje)
+\end{itemize}
+
+\textbf{Avantaje:}
+\begin{itemize}[noitemsep]
+  \item Exploatează atât localitatea memoriei (intra-nod) cât și scalabilitatea (inter-noduri)
+  \item Reduce numărul de procese MPI (mai puține mesaje)
+  \item Tendința dominantă în HPC modern
+\end{itemize}
+
+\textbf{Dezavantaje:} complexitate crescută de programare și debugging.
+
+%%============================================================
+\section{Măsurarea Performanțelor Sistemelor Paralele}
+%%============================================================
+
+\subiect{19}{Metrici pentru sistemele și aplicațiile paralele}
+
+\begin{formulabox}
+\begin{align*}
+\text{Accelerare:} \quad & S(p) = \frac{T_1}{T_p} \\[5pt]
+\text{Eficiență:} \quad & E(p) = \frac{S(p)}{p} = \frac{T_1}{p \cdot T_p} \quad\in (0,\,1] \\[5pt]
+\text{Cost total:} \quad & C = p \cdot T_p \\[5pt]
+\text{Redundanță:} \quad & R = \frac{\text{nr. operații paralele}}{\text{nr. operații secvențiale}} \\[5pt]
+\text{Overhead:} \quad & T_o = p \cdot T_p - T_1 \\[5pt]
+\text{Utilizare:} \quad & U = \frac{T_1}{p \cdot T_p} = E(p)
+\end{align*}
+\end{formulabox}
+
+\subiect{20}{Accelerarea, granularitatea, timpul, eficiența, redundanța, scalarea}
+
+\textbf{Accelerarea} $S(p) = T_1/T_p$: cât de mult s-a redus timpul față de varianta serială.
+\begin{itemize}[noitemsep]
+  \item \textbf{Accelerare liniară (ideală)}: $S(p) = p$
+  \item \textbf{Accelerare supraliniară}: $S(p) > p$ (posibil din cauza efectelor de cache sau descompunerii exploratorii)
+\end{itemize}
+
+\textbf{Granularitatea:}
+\begin{itemize}[noitemsep]
+  \item = dimensiunea task-urilor (câtă procesare per task)
+  \item \textbf{Fină}: task-uri mici, mai mult paralelism potențial, dar overhead mare de comunicare
+  \item \textbf{Grosieră}: task-uri mari, comunicare puțină, dar paralelism limitat
+  \item Raport granularitate/comunicare = factorul cheie de performanță
+\end{itemize}
+
+\textbf{Eficiența} $E(p) \in (0,1]$:
+\begin{itemize}[noitemsep]
+  \item Adăugarea de procesoare \textbf{scade} eficiența pt. dimensiune fixă a problemei
+  \item Mărirea problemei poate \textbf{crește} eficiența pt. nr. fix de procesoare
+\end{itemize}
+
+\textbf{Scalarea:}
+\begin{itemize}[noitemsep]
+  \item \textbf{Sistem scalabil}: poate menține eficiența constantă prin creșterea dimensiunii problemei proporțional cu $p$
+  \item \textbf{Funcția de isoeficiență}: $W(p) = C \cdot T_o(W, p)$ — cât de mult trebuie crescută problema $W$ odată cu $p$ pentru a menține $E$ constant; cu cât raportul e mai mic, cu atât mai bine
+  \item \textbf{Accelerarea scalată} (Gustafson): $S \leq p + (1-p) \cdot s$
+\end{itemize}
+
+\subiect{21}{Costuri suplimentare (Overhead)}
+
+\begin{defbox}{Overhead total}
+\[
+T_o = p \cdot T_p - T_1
+\]
+Reprezintă diferența dintre suma timpilor pe toate procesoarele și cel mai bun timp secvențial.
+\end{defbox}
+
+\textbf{Categorii de costuri suplimentare:}
+
+\begin{enumerate}
+  \item \textbf{Overhead de comunicare}
+  \begin{itemize}[noitemsep]
+    \item Costul inițializării mesajelor ($T_s$) și transferului datelor ($T_w \cdot m$)
+    \item Crește odată cu numărul de mesaje și procesoare
+  \end{itemize}
+
+  \item \textbf{Dezechilibrul încărcării (Load imbalance)}
+  \begin{itemize}[noitemsep]
+    \item Procesoarele nu au aceeași cantitate de lucru $\Rightarrow$ unele stau inactive
+    \item Contribuția: $T_{\text{imbalance}} = T_{\text{max proc}} - T_{\text{medie proc}}$
+  \end{itemize}
+
+  \item \textbf{Overhead de sincronizare}
+  \begin{itemize}[noitemsep]
+    \item Bariere, lock-uri, semafoare — procesoarele se blochează și se coordonează
+    \item Crește cu numărul de puncte de sincronizare
+  \end{itemize}
+
+  \item \textbf{Calcule extra/redundante}
+  \begin{itemize}[noitemsep]
+    \item Unele algoritmi paraleli efectuează mai multe operații decât varianta secvențială (ex: algoritmi de sortare paralelă cu rețea)
+    \item Măsurat prin \textbf{redundanța} $R$
+  \end{itemize}
+
+  \item \textbf{Overhead de management}
+  \begin{itemize}[noitemsep]
+    \item Crearea/distrugerea firelor, programarea task-urilor, compilator, biblioteci, SO
+  \end{itemize}
+\end{enumerate}
+
+\textbf{Consecință:} Costurile suplimentare \textbf{cresc} odată cu $p$, limitând eficiența și scalabilitatea.
+
+\subiect{22}{Legea lui Amdahl}
+
+\begin{defbox}{Legea lui Amdahl — dimensiunea problemei FIXĂ}
+\[
+S(N) = \frac{1}{\sigma + \dfrac{1 - \sigma}{N}}
+\qquad
+S(\infty) = \frac{1}{\sigma}
+\]
+\begin{itemize}[noitemsep]
+  \item $\sigma$ = fracția din cod ce \emph{trebuie} executată \textbf{secvențial} \quad $(0 < \sigma \leq 1)$
+  \item $N$ = numărul de procesoare
+\end{itemize}
+\end{defbox}
+
+\textbf{Exemple numerice:}
+\begin{center}
+\begin{tabular}{ccccc}
+\toprule
+\thead{$\sigma$} & \thead{$S(2)$} & \thead{$S(10)$} & \thead{$S(100)$} & \thead{$S(\infty)$} \\
+\midrule
+10\% & 1.82 & 5.26 & 9.17 & \textbf{10} \\
+30\% & 1.54 & 2.90 & 3.23 & \textbf{3.33} \\
+1\%  & 1.99 & 9.17 & 50.25 & \textbf{100} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Implicații:}
+\begin{itemize}[noitemsep]
+  \item Chiar și 10\% cod serial $\Rightarrow$ accelerare max \textbf{10×} indiferent de nr. procesoare
+  \item Pentru accelerare de 99 cu 100 procesoare: max 0.01\% cod serial!
+  \item Partea secvențială trebuie \textbf{restructurată} pentru paralelizare eficientă
+\end{itemize}
+
+\textbf{Limitări ale legii lui Amdahl:}
+\begin{itemize}[noitemsep]
+  \item Nu ia în calcul \textbf{overhead-ul} de comunicare/sincronizare
+  \item Nu ia în calcul \textbf{dimensiunea problemei} — presupune input fix
+  \item Legea lui Gustafson este mai realistă: $S \leq p + (1-p) \cdot s$ — dimensiunea problemei crește cu $p$
+\end{itemize}
+
+%%============================================================
+\section{Arhitecturi de Calcul Paralel/Distribuit}
+%%============================================================
+
+\subiect{23}{Arhitecturi cu memorie partajată, distribuită și hibride}
+
+\textbf{Memorie partajată:} toate procesoarele accesează același spațiu de adresare global.
+\begin{itemize}[noitemsep]
+  \item Avantaj: ușor de programat, schimb rapid de date
+  \item Dezavantaj: scalabilitate limitată (bottleneck la magistrala de memorie)
+  \item Programatorul gestionează sincronizarea
+\end{itemize}
+
+\textbf{Memorie distribuită:} fiecare procesor are memoria proprie; nu există spațiu de adresare global.
+\begin{itemize}[noitemsep]
+  \item Avantaj: scalabilitate excelentă, cost mic (hardware commodity)
+  \item Dezavantaj: programatorul gestionează explicit comunicarea; integritatea datelor
+  \item Coerența cache-ului nu există
+\end{itemize}
+
+\textbf{Hibride:} cluster de noduri SMP — intra-nod memorie partajată, inter-noduri memorie distribuită.
+\begin{itemize}[noitemsep]
+  \item Tendința dominantă în HPC
+  \item Programare: OpenMP (intra-nod) + MPI (inter-noduri)
+\end{itemize}
+
+\subiect{24}{UMA, SMP, NUMA, CC-UMA, CC-NUMA}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\thead{Arhitectură} & \thead{Descriere} \\
+\midrule
+\textbf{SMP} (Symmetric Multiprocessor) & Procesoare identice, drepturi egale, acces egal la memorie \\
+\textbf{UMA} (Uniform Memory Access) & Timp egal de acces la memorie pentru toate procesoarele \\
+\textbf{CC-UMA} & UMA cu coerență de cache garantată HW; max câteva zeci de procesoare \\
+\textbf{NUMA} (Non-Uniform Memory Access) & Obținut prin interconectarea SMP-urilor; accesul la memoria altui SMP e mai lent \\
+\textbf{CC-NUMA} & NUMA cu coerență de cache; mai scalabil decât CC-UMA \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+\thead{} & \thead{CC-UMA} & \thead{CC-NUMA} & \thead{Distribuită} \\
+\midrule
+Scalabilitate & $\times$10 proc. & $\times$100 proc. & $\times$1000 proc. \\
+Comunicare & MPI, Threads, OpenMP & MPI, OpenMP, shmem & MPI \\
+Exemple & SMP clasic & SGI Origin, HP Exemplar & IBM SP2, BlueGene \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Coerența cache-urilor} — mecanisme:
+\begin{itemize}[noitemsep]
+  \item \textbf{Invalidarea}: la scriere, toate copiile din alte cache-uri devin invalide
+  \item \textbf{Update}: la scriere, toate copiile sunt actualizate — trafic mai mare
+  \item Alegerea depinde de raportul citiri/scrieri ale aplicației
+\end{itemize}
+
+\subiect{25}{Client-server (MVC), obiecte distribuite, middleware (RMI, CORBA)}
+
+\subsubsection{Arhitectura Client-Server}
+\begin{itemize}[noitemsep]
+  \item Clienții cunosc serverele; serverele \textbf{nu} cunosc clienții
+  \item Comunicare prin TCP/IP
+  \item \textbf{3 nivele (MVC)}: View/prezentare (client) $\to$ Controller/application (server aplicații) $\to$ Model/date (server BD)
+\end{itemize}
+
+\textbf{Clase de aplicații:}
+\begin{itemize}[noitemsep]
+  \item \textbf{Host-based}: toată procesarea pe server; clientul = terminal
+  \item \textbf{Server-based}: serverul procesează, clientul are GUI
+  \item \textbf{Client-based}: toată procesarea la client; serverul = doar BD
+  \item \textbf{Cooperative}: atât serverul cât și clientul rulează logică — cel mai eficient dar mai complex
+\end{itemize}
+
+\subsubsection{Arhitectura cu obiecte distribuite}
+\begin{itemize}[noitemsep]
+  \item Nu există distincție client/server — \textbf{orice obiect} poate fi client sau server
+  \item Obiecte distribuite interacționează prin interfețe bine definite
+\end{itemize}
+
+\subsubsection{Middleware}
+Software care administrează și susține diferite componente ale sistemului distribuit:
+\begin{itemize}[noitemsep]
+  \item \textbf{CORBA} (Common Object Request Broker Architecture): standard pentru interoperabilitate între obiecte distribuite în limbaje diferite; folosește ORB (Object Request Broker)
+  \item \textbf{Java RMI} (Remote Method Invocation): apelarea metodelor pe obiecte aflate în JVM-uri diferite
+  \item \textbf{SOAP/EJB}: servicii web și enterprise beans
+\end{itemize}
+
+\textbf{RPC (Remote Procedure Call):}
+\begin{itemize}[noitemsep]
+  \item Permite programelor de pe sisteme diferite să interacționeze prin apelări simple
+  \item Codul de comunicare se generează \textbf{automat}
+  \item Modulele client/server pot fi mutate între platforme cu modificări minime
+\end{itemize}
+
+%%============================================================
+\section{Proiectarea Programelor Paralele}
+%%============================================================
+
+\subiect{26}{Task, Computation Graph}
+
+\begin{defbox}{Task}
+Secvență de calcul cu:
+\begin{itemize}[noitemsep]
+  \item \textbf{Cod} secvențial și \textbf{memorie locală}
+  \item \textbf{Interfață}: inports (date de intrare) și outports (date de ieșire)
+\end{itemize}
+Un task poate: trimite mesaje la outport, recepționa prin inports, crea un nou task, termina.
+\end{defbox}
+
+\begin{itemize}[noitemsep]
+  \item Operația de \textbf{trimitere} este \textbf{asincronă} (se finalizează imediat)
+  \item Operația de \textbf{recepționare} este \textbf{sincronă} (blochează task-ul)
+  \item Canalele = cozi de mesaje între outport și inport
+  \item Mai multe task-uri se pot aloca unui singur procesor
+\end{itemize}
+
+\begin{defbox}{Computation Graph (Graf de calcul)}
+\textbf{DAG} (Graf Direcționat Aciclic) în care:
+\begin{itemize}[noitemsep]
+  \item \textbf{Noduri} = task-uri (cu noduri sursă și destinație)
+  \item \textbf{Muchii} = dependențe de date sau de comunicare ($A \to B$ = B depinde de A)
+  \item \textbf{Calea critică} = cel mai lung drum în DAG = limita inferioară a timpului paralel
+\end{itemize}
+\end{defbox}
+
+\textbf{Utilizarea grafului de calcul:}
+\begin{itemize}[noitemsep]
+  \item Permite identificarea oportunităților de paralelizare
+  \item Datele din memoria locală a unui task sunt „apropiate"; celelalte sunt „îndepărtate"
+  \item Canalele exprimă \textbf{dependențele de date} (data dependency)
+\end{itemize}
+
+\subiect{27}{Descompunerea și alocarea: graf de dependințe, descompunere de domeniu, descompunere funcțională}
+
+\subsubsection{Graful de dependințe și interacțiuni}
+\begin{itemize}[noitemsep]
+  \item Reprezintă toate task-urile și relațiile de dependență și comunicare
+  \item Permite analiza calitativă și cantitativă a paralelismului disponibil
+  \item Se poate reprezenta ca DAG sau ca graf neorientat (pentru interacțiuni)
+\end{itemize}
+
+\subsubsection{Descompunerea de domeniu (a datelor)}
+\begin{enumerate}[noitemsep]
+  \item Se partiționează \textbf{datele} (input, output sau intermediare)
+  \item Se asociază fiecărui subset de date un task care efectuează calculele necesare
+  \item Regula: \textbf{task-ul care deține datele le și procesează}
+  \item Dacă o operație necesită date din mai multe task-uri $\Rightarrow$ nevoie de comunicare
+\end{enumerate}
+
+\textbf{Exemplu} — Înmulțire $A[2\times2] \times B[2\times2] = C[2\times2]$:
+Task 1: $C_{11}$; Task 2: $C_{12}$; Task 3: $C_{21}$; Task 4: $C_{22}$ (toate independente!)
+
+\subsubsection{Descompunerea funcțională}
+\begin{enumerate}[noitemsep]
+  \item Se partiționează \textbf{calculele/funcțiile} în parts disjuncte
+  \item Dacă datele necesare sunt și ele disjuncte $\Rightarrow$ task-uri directe
+  \item Suprapunerile de date $\Rightarrow$ nevoie de comunicare
+\end{enumerate}
+
+\textbf{Exemplu} — Model climatic: task atmosferă, task ocean, task hidrologie — funcții diferite, date schimbate prin canale.
+
+\begin{notebox}
+\textbf{Complementaritate}: descompunerea datelor și cea funcțională pot fi aplicate la module diferite ale aceleiași probleme sau combinate.
+\end{notebox}
+
+\subiect{28}{Comunicarea (locală, globală, asincronă)}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\thead{Dimensiune} & \thead{Tip 1} & \thead{Tip 2} \\
+\midrule
+Scope & \textbf{Locală}: task comunică cu vecini imediați & \textbf{Globală}: fiecare task comunică cu mulți alții \\
+Structură & \textbf{Structurată}: grid, arbore & \textbf{Nestructurată}: graf arbitrar \\
+Stabilitate & \textbf{Statică}: parteneri ficși & \textbf{Dinamică}: parteneri schimbaţi la runtime \\
+Coordonare & \textbf{Sincronă}: coordonat & \textbf{Asincronă}: independent \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{Comunicare locală — exemplu}
+Calculul diferenței finite 2D: $X[i,j]^{(t+1)} = f(X[i,j]^{(t)}, X[i\pm1,j]^{(t)}, X[i,j\pm1]^{(t)})$
+— fiecare task comunică \textbf{numai cu cei 4 vecini}; toate punctele se pot updata concurent.
+
+\subsubsection{Comunicare globală — problema sumei}
+\begin{itemize}[noitemsep]
+  \item Abordare naivă (centralizată): $O(N)$ pași — slab, nu scalează
+  \item \textbf{Divide and conquer}: $O(\log N)$ pași — toate adunările de pe un nivel se execută concurent
+\end{itemize}
+
+\subsubsection{Comunicare asincronă}
+\begin{itemize}[noitemsep]
+  \item Task-uri separate de date (D) și de calcul (C)
+  \item Task-urile C trimit cereri de citire/scriere asincron la task-urile D
+  \item Mecanism: task-uri D separate care răspund la cereri SAU structuri de date distribuite accesibile asincron
+\end{itemize}
+
+\textbf{Verificarea modului de comunicare:}
+\begin{enumerate}[noitemsep]
+  \item Toate task-urile realizează $\approx$ același nr. de operații de comunicare?
+  \item Fiecare task comunică cu un număr \textbf{mic} de vecini?
+  \item Operațiile de comunicare se desfășoară \textbf{în paralel}?
+  \item Calculele și comunicările sunt \textbf{concurente}?
+\end{enumerate}
+
+\subiect{29}{Paralelizarea Foster (PCAM)}
+
+\begin{defbox}{Metodologia Foster — 4 pași}
+\begin{enumerate}[noitemsep]
+  \item \textbf{Partiționare (P)}: granularitate fină, maximizăm potențialul de paralelism
+  \item \textbf{Comunicare (C)}: identificăm canalele și mesajele dintre task-uri
+  \item \textbf{Aglomerare (A)}: grupăm task-uri mici în task-uri mai mari
+  \item \textbf{Alocare/Mapare (M)}: asignăm task-uri pe procesoare fizice
+\end{enumerate}
+\end{defbox}
+
+\subsubsection{Pasul 1 — Partiționarea}
+\begin{itemize}[noitemsep]
+  \item Scopul: cât mai multe task-uri, cât mai fine (granularitate fină)
+  \item O descompunere bună împarte atât logica cât și datele
+  \item Tipuri: descompunere de domeniu, funcțională, recursivă, exploratorie
+\end{itemize}
+
+\subsubsection{Pasul 2 — Comunicarea}
+\begin{itemize}[noitemsep]
+  \item Definim canale între producători și consumatori de date
+  \item Specificăm mesajele trimise și primite prin canale
+  \item Preferăm comunicare \textbf{locală} față de globală; \textbf{paralelă} față de secvențială
+\end{itemize}
+
+\subsubsection{Pasul 3 — Aglomerarea}
+\begin{itemize}[noitemsep]
+  \item Scopul: reducerea comunicării prin creșterea localizării
+  \item Grupăm task-uri care comunică frecvent
+  \item \textbf{Structura fluture (butterfly)}: $\log N$ nivele; suma în $\log N$ pași; fiecare task obține suma completă
+  \item Verificare: s-au redus costurile de comunicare? au apărut procesări replicate?
+\end{itemize}
+
+\subsubsection{Pasul 4 — Alocarea}
+\begin{itemize}[noitemsep]
+  \item Specifică \emph{unde} se execută fiecare task (pe ce procesor)
+  \item \textbf{Depinde} de arhitectura fizică (singurul pas care depinde!)
+  \item Probleme NP-complete în caz general $\Rightarrow$ euristici
+  \item Strategii: task-uri independente pe procesoare diferite ($\uparrow$ concurență); task-uri cu comunicare frecventă pe același procesor ($\uparrow$ localizare)
+\end{itemize}
+
+\subsubsection{Concluzii Foster}
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\thead{Pas} & \thead{Depinde de arhitectură?} & \thead{Scop principal} \\
+\midrule
+Partiționare & NU & Permite concurența maximă \\
+Comunicare & NU & Identifică constrângerile de date \\
+Aglomerare & NU & Echilibrează, limitează comunicarea \\
+Alocare & \textbf{DA} & Exploatează localizarea \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Ghid de paralelizare (Foster):}
+\begin{enumerate}[noitemsep]
+  \item Identifică modulele cu necesități mari de calcul (computational hotspots)
+  \item Partiționează problema în task-uri mici și cât mai independente
+  \item Identifică necesitățile de comunicare
+  \item Aglomerează task-urile mici în task-uri mai mari (comunicare minimă)
+  \item Alocă task-urile și datele pe procesoare (balansare încărcării + minimizare comunicare)
+\end{enumerate}
+
+%%============================================================
+\section*{Rezumat Formule Esențiale}
+\addcontentsline{toc}{section}{Rezumat Formule Esențiale}
+%%============================================================
+
+\begin{formulabox}
+\begin{align*}
+T_{com} &= T_s + T_w \cdot m & &\text{(costul unui mesaj)} \\[4pt]
+T_k &= (K + N - 1) \cdot T, \quad S \approx K \text{ pt. } N\gg K & &\text{(pipeline)} \\[4pt]
+S(p) &= \frac{T_1}{T_p}, \quad E(p) = \frac{S(p)}{p}, \quad T_o = p\cdot T_p - T_1 & &\text{(metrici)} \\[4pt]
+S_\text{Amdahl} &= \frac{1}{\sigma + \frac{1-\sigma}{N}}, \quad S(\infty) = \frac{1}{\sigma} & &\text{(Amdahl, dim. fixă)} \\[4pt]
+S_\text{Gustafson} &\leq p + (1-p)\cdot s & &\text{(Gustafson, dim. crește)}
+\end{align*}
+\end{formulabox}
+
+\end{document}

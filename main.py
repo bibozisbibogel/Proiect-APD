@@ -5,15 +5,21 @@ import argparse
 from models import Query
 from timing import TimingCollector
 from api_clients import GeoapifyClient, OverpassClient, FoursquareClient
-from execution import SequentialStrategy
+from execution import SequentialStrategy, AsyncStrategy, MultiprocessingStrategy
 from scoring import Scorer
 from pipeline import run_pipeline
 import config
 
+STRATEGIES = {
+    "sequential": SequentialStrategy,
+    "async": AsyncStrategy,
+    "multiprocessing": MultiprocessingStrategy,
+}
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Travel Companion — AI Restaurant Finder (Sequential)"
+        description="Travel Companion — AI Restaurant Finder"
     )
     parser.add_argument("--location", required=True, help="City name (e.g. Constanta)")
     parser.add_argument("--food", default="", help="Food types, comma-separated (e.g. seafood,fish)")
@@ -21,6 +27,12 @@ def parse_args():
     parser.add_argument("--max-distance", type=float, default=config.MAX_DISTANCE_KM, help="Max distance in km")
     parser.add_argument("--apis", type=int, default=2, choices=[1, 2, 3], help="Number of API sources (1-3)")
     parser.add_argument("--top-k", type=int, default=config.TOP_K_RESULTS, help="Number of results to show")
+    parser.add_argument(
+        "--mode",
+        default="sequential",
+        choices=list(STRATEGIES.keys()),
+        help="Execution mode: sequential | async | multiprocessing (default: sequential)",
+    )
     return parser.parse_args()
 
 
@@ -28,6 +40,12 @@ def build_clients(num_apis: int):
     """Create real API clients based on requested count."""
     available = [GeoapifyClient(), OverpassClient(), FoursquareClient()]
     return available[:num_apis]
+
+
+def build_strategy(mode: str, collector: TimingCollector):
+    """Instantiate the chosen execution strategy."""
+    cls = STRATEGIES[mode]
+    return cls(collector)
 
 
 def print_results(result):
@@ -63,7 +81,7 @@ def main():
 
     clients = build_clients(args.apis)
     collector = TimingCollector()
-    strategy = SequentialStrategy(collector)
+    strategy = build_strategy(args.mode, collector)
     scorer = Scorer()
 
     result = run_pipeline(query, strategy, clients, scorer, top_k=args.top_k)

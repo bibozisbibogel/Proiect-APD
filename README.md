@@ -1,215 +1,215 @@
-# Travel Companion – AI Restaurant Finder
+# Travel Companion — AI Restaurant Finder
 
 ## Overview
 
-Travel Companion is an AI-powered application that recommends the best restaurant based on user preferences (location, food type, environment, distance, etc.).
+**Travel Companion** is an AI-powered restaurant recommendation system that aggregates data from multiple real external APIs (Geoapify, OpenStreetMap/Overpass, Foursquare) and ranks results using a configurable weighted scoring algorithm.
 
-The system aggregates data from multiple external APIs (e.g. Google Places, Yelp) and applies ranking algorithms to determine the most suitable restaurant.
-
-The main goal of this project is to **analyze and compare sequential and parallel approaches** for multi-source data aggregation and processing.
+The core goal is to **implement and compare three execution strategies** — sequential, async I/O, and multiprocessing — measuring the performance impact of parallelism on a real multi-API aggregation workload.
 
 ---
 
-## Project Objectives
+## Execution Modes
 
-- Build an intelligent restaurant recommendation system
-- Integrate multiple external APIs for data collection
-- Implement and compare:
-  - Sequential execution
-  - Parallel execution (async I/O)
-  - Parallel execution (multi-processing / distributed)
-- Measure performance improvements (execution time, speedup, scalability)
-- Visualize execution flow and parallelism using frontend tools
+### 1. Sequential (S6 — baseline)
 
----
+All stages execute one after another. Each API call blocks until the response arrives.
 
-## Key Features
+```
+T_total = T_api1 + T_api2 + T_api3 + T_dedup + T_score + T_rank
+```
 
-- AI-based query understanding (user preferences)
-- Multi-API restaurant search and aggregation
-- Ranking system based on:
-  - rating
-  - distance
-  - food match
-  - environment (e.g. seaside view)
-- Execution mode selection:
-  - Sequential
-  - Parallel #1 (Async)
-  - Parallel #2 (Multiprocessing / Distributed)
-- Performance metrics visualization:
-  - execution time
-  - speedup
-  - task timeline (Gantt chart)
+### 2. Parallel #1 — Async I/O (`--mode async`)
+
+All API calls are dispatched simultaneously using `asyncio` + `ThreadPoolExecutor`. Since existing clients use blocking `requests`, each call runs in its own thread; `asyncio.gather()` waits for all of them concurrently.
+
+```
+T_total ≈ max(T_api1, T_api2, T_api3) + T_dedup + T_score + T_rank
+```
+
+### 3. Parallel #2 — Multiprocessing (`--mode multiprocessing`)
+
+Two separate phases are parallelised using `multiprocessing.Pool`:
+
+- **I/O phase**: each API client runs in a separate OS worker process
+- **CPU phase**: restaurant scoring distributed across all available CPU cores
+
+```
+T_total ≈ max(T_api_i) + T_dedup + T_score_seq/N_cpus + T_rank
+```
 
 ---
 
-## System Architecture
-User
-↓
-Frontend (Next.js, React)
-↓
-Backend (FastAPI)
-↓
-AI Agent (LangGraph / LangChain)
-↓
-Parallel Task Execution Layer
-↙ ↓ ↘
-Google Yelp Other APIs
+## Performance Results (Real APIs, 3 runs × 6 queries)
 
+| Mode | 1 API | 2 APIs | 3 APIs | Speedup (3 APIs) |
+|------|-------|--------|--------|------------------|
+| Sequential (measured) | 0.69 s | 9.05 s | 8.73 s | 1.00× |
+| Async (theoretical) | 0.69 s | ~8.35 s | ~7.40 s | ~1.18× |
+| Multiprocessing (theoretical) | ~0.85 s | ~8.50 s | ~7.55 s | ~1.16× |
+
+> Overpass/OSM dominates (~7-8 s per call) due to shared public infrastructure variability. Local processing (dedup, scoring, ranking) is negligible (<1 ms).
+
+---
+
+## Architecture
+
+### Strategy Pattern
+
+All three modes share the same `ExecutionStrategy` interface:
+
+```python
+class ExecutionStrategy(ABC):
+    def execute(self, query, clients, scorer) -> List[ScoredRestaurant]: ...
+    def mode_name(self) -> str: ...
+```
+
+`run_pipeline()` works with any strategy — adding a new mode requires zero changes to the orchestrator.
+
+### Data Sources
+
+| Source | API | Notes |
+|--------|-----|-------|
+| Geoapify Places | `api.geoapify.com/v2/places` | Category filter, fast (~0.7 s) |
+| OpenStreetMap Overpass | `overpass-api.de/api/interpreter` | Free, no key, variable latency |
+| Foursquare Places | `places-api.foursquare.com/places/search` | Bearer token, fast (~0.6 s) |
+
+### Scoring Formula
+
+```
+score = 0.30 × S_rating + 0.25 × S_distance + 0.30 × S_food + 0.15 × S_environment
+```
+
+where each component is normalized to [0, 1]. Deduplication removes restaurants with the same name within 100 m, keeping the higher-rated version.
+
+---
+
+## Project Structure
+
+```
+ProiectAPD/
+├── main.py                     # CLI entry point (--mode flag)
+├── experiments.py              # Batch benchmark runner (all 3 modes)
+├── pipeline.py                 # Orchestrator: connects strategy, clients, scorer
+├── models.py                   # Query, Restaurant, ScoredRestaurant, PipelineResult
+├── scoring.py                  # Scoring formula + deduplication
+├── timing.py                   # TimingCollector, TimingRecord
+├── config.py                   # API keys (from .env), weights, defaults
+│
+├── api_clients/
+│   ├── base.py                 # Abstract BaseAPIClient
+│   ├── real_client.py          # GeoapifyClient, OverpassClient, FoursquareClient
+│   └── mock_client.py          # MockGooglePlaces, MockFoursquare, MockTripAdvisor
+│
+├── execution/
+│   ├── base.py                 # Abstract ExecutionStrategy
+│   ├── sequential.py           # SequentialStrategy  (S6 baseline)
+│   ├── async_strategy.py       # AsyncStrategy       (Parallel #1)
+│   └── multiprocessing_strategy.py  # MultiprocessingStrategy (Parallel #2)
+│
+├── report/
+│   ├── report.tex              # LaTeX report (sequential only, S6)
+│   └── experiment_results.csv  # Timing data from experiments
+│
+├── Proiect_APD_Complet.tex     # Full project LaTeX report (all 3 modes)
+├── Proiect_APD_VariantaSecventiala.pdf  # S6 report (compiled)
+└── requirements.txt
+```
+
+---
+
+## Usage
+
+### Installation
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env   # fill in your API keys
+```
+
+### Search (CLI)
+
+```bash
+# Sequential (default)
+python main.py --location "Constanta" --food "seafood" --environment "seaside" --apis 2
+
+# Async I/O
+python main.py --location "Constanta" --food "seafood" --mode async --apis 3
+
+# Multiprocessing
+python main.py --location "Bucharest" --food "italian" --mode multiprocessing --apis 3
+```
+
+#### CLI Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--location` | (required) | City name |
+| `--food` | `""` | Food types, comma-separated |
+| `--environment` | `""` | Environment prefs, comma-separated |
+| `--max-distance` | 10.0 | Max radius in km |
+| `--apis` | 2 | Number of API sources (1–3) |
+| `--top-k` | 10 | Number of results to display |
+| `--mode` | `sequential` | `sequential` \| `async` \| `multiprocessing` |
+
+### Benchmark All Modes
+
+```bash
+# Full benchmark: all 3 modes × all API counts × 6 queries × 3 runs
+python experiments.py \
+    --modes "sequential,async,multiprocessing" \
+    --runs-per-query 3 \
+    --api-counts "1,2,3" \
+    --output report/experiment_results.csv
+```
+
+The script exports a CSV with per-stage timing and prints a speedup table vs sequential baseline.
 
 ---
 
 ## Technology Stack
 
-### Backend
-- Python
-- FastAPI
-- Uvicorn
-- LangGraph / LangChain
-- AsyncIO / Multiprocessing
-
-### Frontend
-- Next.js
-- React
-- Tailwind CSS
-- gantt-task-react / vis-timeline (task visualization)
-- Recharts (performance charts)
-
-### Database
-- Supabase (PostgreSQL)
+| Layer | Technology |
+|-------|-----------|
+| Language | Python 3.12 |
+| Async I/O | `asyncio`, `concurrent.futures.ThreadPoolExecutor` |
+| CPU parallelism | `multiprocessing.Pool` |
+| HTTP clients | `requests` (synchronous) |
+| Architecture | Strategy Pattern |
+| Timing | `time.perf_counter()` via `TimingCollector` |
+| Config | `python-dotenv` |
+| Docs | LaTeX (`Proiect_APD_Complet.tex`) |
 
 ---
 
-## Execution Models
+## Test Machine
 
-### 1. Sequential Execution
-
-All tasks are executed one after another:
-
-1. Call API #1
-2. Wait for response
-3. Call API #2
-4. Wait for response
-5. Process data
-6. Rank restaurants
-
-Execution time:
-T = T1 + T2 + T3 + ...
-
+| Spec | Value |
+|------|-------|
+| CPU | AMD Ryzen 7 7745HX (8 cores / 16 threads) |
+| RAM | 16 GB |
+| OS | Linux 6.6.87.2 WSL2 |
+| Python | 3.12.3 |
+| Fork method | `fork` (Linux default) |
 
 ---
 
-### 2. Parallel Execution #1 (Async I/O)
+## Key Technical Decisions
 
-API calls are executed concurrently using async programming:
+**Why `ThreadPoolExecutor` for Async, not `aiohttp`?**  
+Existing `requests`-based clients work without rewriting. Each blocking `.search()` runs in its own thread; `asyncio.gather()` provides the concurrency model. Result is functionally identical to native async.
 
-- Multiple API requests are sent simultaneously
-- System waits for all responses
+**Why are `_call_client` / `_score_restaurant` module-level functions?**  
+`multiprocessing.Pool.map()` pickles function references. Lambda expressions and bound methods are not picklable — module-level functions are.
 
-Execution time:
-T = max(T1, T2, T3)
-
-
-Technologies:
-- asyncio
-- async HTTP clients (httpx)
-
----
-
-### 3. Parallel Execution #2 (Multiprocessing / Distributed)
-
-CPU-intensive tasks are parallelized:
-
-- restaurant scoring
-- review analysis
-- ranking computation
-
-Technologies:
-- multiprocessing
-- or distributed frameworks (optional: Ray / Dask)
-
----
-
-## Performance Evaluation
-
-The system measures and compares:
-
-- Total execution time
-- API response times
-- Number of processed restaurants
-- Speedup: Speedup = T_sequential / T_parallel
-
-
----
-
-## Frontend Visualization
-
-The frontend provides:
-
-### 1. Execution Mode Selector
-- Sequential
-- Parallel (Async)
-- Parallel (Multiprocessing)
-
-### 2. Execution Metrics
-- total execution time
-- speedup
-- number of APIs used
-
-### 3. Task Timeline (Gantt Chart)
-Visual representation of task execution:
-- sequential vs parallel behavior
-- task overlap
-
-### 4. Performance Charts
-- execution time vs number of tasks
-- scalability graphs
-
-### 5. Restaurant Results
-- ranked list of recommended restaurants
-- score breakdown
-
----
-
-## Example Flow
-
-1. User input:
-Location: Constanta
-Food: Seafood
-Environment: Seaside
-
-
-2. System:
-- queries multiple APIs
-- aggregates results
-- computes ranking
-- returns top restaurants
-
-3. Frontend:
-- displays results
-- shows execution timeline
-- compares performance modes
-
----
-
-## Future Improvements
-
-- Add more APIs (TripAdvisor, Foursquare)
-- Improve AI agent decision-making
-- Implement distributed execution (cluster)
-- Add caching layer
-- Real-time streaming of task progress
+**Why is deduplication kept sequential?**  
+The dedup algorithm is order-sensitive (it tracks `seen` state) and runs in <1 ms — parallelizing it would add overhead without benefit.
 
 ---
 
 ## Conclusion
 
-This project demonstrates how parallel and distributed techniques can significantly improve performance in real-world applications involving:
+This project demonstrates the trade-offs between three execution models on a real I/O-bound workload:
 
-- multiple external data sources
-- large-scale data processing
-- AI-based decision systems
-
-It highlights the trade-offs between simplicity (sequential execution) and efficiency (parallel execution).
-
----
+- **Sequential**: simple, correct, sufficient for single-API scenarios
+- **Async I/O**: best choice for multi-API I/O-bound workloads; low overhead, achieves `T ≈ max(T_api_i)`
+- **Multiprocessing**: eliminates GIL entirely; best when CPU scoring becomes significant (large restaurant sets); higher overhead makes it less attractive for the current workload where scoring is <1 ms
